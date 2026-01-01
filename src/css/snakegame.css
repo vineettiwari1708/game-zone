@@ -1,37 +1,37 @@
+/* General styling */
 #snake-game-container {
   font-family: sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 100%;
-  max-width: 360px;
+  height: 100vh; /* Take full viewport height */
   background: #f4f4f4;
   border-radius: 12px;
-  padding: 10px;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.snake-grid {
-  display: grid;
-  grid-template-columns: repeat(15, 20px);
-  grid-template-rows: repeat(15, 20px);
-  gap: 1px;
-  background: #ccc;
+/* Canvas styling */
+canvas {
+  display: block;
+  border: 2px solid #000;
+  margin-bottom: 20px;
+  max-width: 100%; /* Make the canvas responsive */
+  max-height: 90vh; /* Ensure it doesn't overflow vertically on smaller screens */
 }
 
-.snake-cell {
-  width: 20px;
-  height: 20px;
-  background: white;
+/* Styling for the game over message */
+.game-over {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+  text-align: center;
 }
 
-.snake-body {
-  background: #007bff !important;
-}
-
-.snake-food {
-  background: red !important;
-}
-
+/* Additional styling for controls if needed */
 .snake-controls {
   margin-top: 10px;
   display: flex;
@@ -51,8 +51,32 @@
   background: #dc3545;
 }
 
-.game-over {
-  color: red;
-  font-weight: bold;
-  margin-top: 10px;
+/* Responsiveness for mobile devices */
+@media (max-width: 600px) {
+  #snake-game-container {
+    padding: 15px;
+    max-width: 100%; /* Full width on smaller screens */
+  }
+
+  .snake-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .snake-btn {
+    width: 100%;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  canvas {
+    width: 100% !important; /* Force canvas to be fully responsive on very small screens */
+    height: auto;
+  }
+
+  .snake-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
 }
