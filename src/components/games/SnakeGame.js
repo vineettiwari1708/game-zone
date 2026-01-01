@@ -1,159 +1,146 @@
-import React, { useState, useEffect } from "react";
-import "../../css/snakegame.css"; // Add the styling you need in SnakeGame.css
+// src/SnakeGame.js
+import React, { useState, useEffect, useRef } from 'react';
+import "../../css/snakegame.css"
+
+// Constants for the game
+const CANVAS_SIZE = 400;
+const BLOCK_SIZE = 20;
+const SNAKE_SPEED = 100; // Higher number = slower game
+
+// Directions
+const UP = 'UP';
+const DOWN = 'DOWN';
+const LEFT = 'LEFT';
+const RIGHT = 'RIGHT';
 
 const SnakeGame = () => {
-  const size = 15; // Grid size (15x15)
-  const gridSize = size * size;
-
-  // Game state
-  const [snake, setSnake] = useState([112, 111]); // Initial snake position
-  const [direction, setDirection] = useState(1); // 1: right, -1: left, size: down, -size: up
-  const [food, setFood] = useState(null);
+  const canvasRef = useRef(null);
+  const [snake, setSnake] = useState([
+    { x: 80, y: 100 },
+    { x: 60, y: 100 },
+    { x: 40, y: 100 },
+  ]);
+  const [direction, setDirection] = useState(RIGHT);
+  const [food, setFood] = useState({ x: 200, y: 200 });
+  const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [intervalId, setIntervalId] = useState(null);
 
-  // Place food at a random position
-  const placeFood = () => {
-    let foodPosition;
-    do {
-      foodPosition = Math.floor(Math.random() * gridSize);
-    } while (snake.includes(foodPosition)); // Ensure food doesn't overlap the snake
-    setFood(foodPosition);
+  // Handle key presses for movement
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowUp' && direction !== DOWN) {
+      setDirection(UP);
+    } else if (e.key === 'ArrowDown' && direction !== UP) {
+      setDirection(DOWN);
+    } else if (e.key === 'ArrowLeft' && direction !== RIGHT) {
+      setDirection(LEFT);
+    } else if (e.key === 'ArrowRight' && direction !== LEFT) {
+      setDirection(RIGHT);
+    }
   };
 
-  // Draw the snake and food
-  const draw = () => {
-    // We rely on React to re-render the grid when the state changes
+  // Collision detection
+  const checkCollision = (head) => {
+    // Collision with walls
+    if (head.x < 0 || head.x >= CANVAS_SIZE || head.y < 0 || head.y >= CANVAS_SIZE) {
+      return true;
+    }
+    // Collision with self
+    for (let i = 1; i < snake.length; i++) {
+      if (snake[i].x === head.x && snake[i].y === head.y) {
+        return true;
+      }
+    }
+    return false;
   };
 
-  // Move the snake based on the direction
-  const moveSnake = () => {
+  // Generate new food
+  const generateFood = () => {
+    const x = Math.floor((Math.random() * (CANVAS_SIZE / BLOCK_SIZE))) * BLOCK_SIZE;
+    const y = Math.floor((Math.random() * (CANVAS_SIZE / BLOCK_SIZE))) * BLOCK_SIZE;
+    return { x, y };
+  };
+
+  // Game loop
+  const gameLoop = () => {
     if (gameOver) return;
 
-    const head = snake[0];
-    let next = head + direction;
+    // Get new head position based on the direction
+    const head = { ...snake[0] };
+    if (direction === UP) head.y -= BLOCK_SIZE;
+    if (direction === DOWN) head.y += BLOCK_SIZE;
+    if (direction === LEFT) head.x -= BLOCK_SIZE;
+    if (direction === RIGHT) head.x += BLOCK_SIZE;
 
-    // Wall collision
-    const x = head % size;
-    if (
-      (direction === 1 && x === size - 1) ||
-      (direction === -1 && x === 0) ||
-      (direction === -size && head < size) ||
-      (direction === size && head >= size * (size - 1))
-    ) {
-      endGame();
+    // Check for collisions
+    if (checkCollision(head)) {
+      setGameOver(true);
       return;
     }
 
-    // Self collision
-    if (snake.includes(next)) {
-      endGame();
-      return;
-    }
+    // Add new head to the snake
+    const newSnake = [head, ...snake];
 
-    const newSnake = [next, ...snake];
-
-    if (next === food) {
-      placeFood(); // Re-generate food when eaten
+    // Check if the snake eats food
+    if (head.x === food.x && head.y === food.y) {
+      setFood(generateFood());
+      setScore(score + 1);
     } else {
-      newSnake.pop(); // Remove the tail if no food is eaten
+      newSnake.pop();
     }
 
-    setSnake(newSnake); // Update snake state
+    setSnake(newSnake);
   };
 
-  // End the game
-  const endGame = () => {
-    clearInterval(intervalId);
-    setGameOver(true);
-    alert("Game Over!");
+  // Render snake and food on the canvas
+  const drawGame = () => {
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE); // Clear canvas
+
+    // Draw snake
+    ctx.fillStyle = 'green';
+    snake.forEach(segment => {
+      ctx.fillRect(segment.x, segment.y, BLOCK_SIZE, BLOCK_SIZE);
+    });
+
+    // Draw food
+    ctx.fillStyle = 'red';
+    ctx.fillRect(food.x, food.y, BLOCK_SIZE, BLOCK_SIZE);
+
+    // Draw score
+    ctx.fillStyle = 'black';
+    ctx.font = '20px Arial';
+    ctx.fillText(`Score: ${score}`, 10, 20);
   };
 
-  // Reset the game
-  const resetGame = () => {
-    setSnake([112, 111]);
-    setDirection(1);
-    setGameOver(false);
-    placeFood();
-    const newIntervalId = setInterval(moveSnake, 200); // Move snake every 200ms
-    setIntervalId(newIntervalId);
-  };
-
-  // Handle keydown events for snake movement
+  // Game update
   useEffect(() => {
-    const handleKeydown = (e) => {
-      if (gameOver) return; // Disable movement after game over
+    if (gameOver) return;
 
-      switch (e.key) {
-        case "ArrowUp":
-          if (direction !== size) setDirection(-size); // Up
-          break;
-        case "ArrowDown":
-          if (direction !== -size) setDirection(size); // Down
-          break;
-        case "ArrowLeft":
-          if (direction !== 1) setDirection(-1); // Left
-          break;
-        case "ArrowRight":
-          if (direction !== -1) setDirection(1); // Right
-          break;
-        default:
-          break;
-      }
-    };
+    const interval = setInterval(() => {
+      gameLoop();
+      drawGame();
+    }, SNAKE_SPEED);
 
-    window.addEventListener("keydown", handleKeydown);
+    return () => clearInterval(interval);
+  }, [snake, food, direction, gameOver]);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeydown);
-      clearInterval(intervalId); // Clean up the interval on component unmount
-    };
-  }, [direction, gameOver]);
-
-  // Create the grid based on the snake and food positions
-  const createGrid = () => {
-    const grid = [];
-    for (let i = 0; i < gridSize; i++) {
-      const isSnake = snake.includes(i);
-      const isFood = food === i;
-
-      const cellClass = isSnake
-        ? "snake-body"
-        : isFood
-        ? "snake-food"
-        : "snake-cell";
-
-      grid.push(
-        <div key={i} className={`snake-cell ${cellClass}`} />
-      );
-    }
-    return grid;
-  };
-
-  // Start the game when the component mounts
+  // Listen to key events
   useEffect(() => {
-    resetGame(); // Start game when component mounts
-
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
-      clearInterval(intervalId); // Clean up interval on unmount
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [direction]);
 
   return (
-    <div id="snake-game-container">
-      <h2>Snake Game</h2>
-      <div className="snake-grid">
-        {createGrid()}
-      </div>
-      <div className="snake-controls">
-        <button className="snake-btn" onClick={resetGame}>
-          Reset
-        </button>
-        <button className="snake-btn danger" onClick={() => window.location.reload()}>
-          Close
-        </button>
-      </div>
-      {gameOver && <div className="game-over">Game Over!</div>}
+    <div>
+      <canvas ref={canvasRef} width={CANVAS_SIZE} height={CANVAS_SIZE} />
+      {gameOver && (
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <h2>Game Over!</h2>
+          <p>Your score: {score}</p>
+        </div>
+      )}
     </div>
   );
 };
